@@ -72,4 +72,6 @@ async function intialize() {
         });
 }
 
-displayProducts().then(()=>{intialize()});
+displayProducts().then(()=>{
+    intialize()
+});
