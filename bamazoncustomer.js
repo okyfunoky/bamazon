@@ -1,29 +1,16 @@
 const mysql = require("mysql2/promise");
 const cTable = require('console.table');
-const util = require('util');
 
+let connectionObject = {
+    port: 3306,
+    user: 'root',
+    namedPlaceholders: true,
+    password: 'mikeis31',
+    database: "bamazon"
+}
 
-// var connection = mysql.createConnection({
-//     host: "localhost",
-
-//     // Your port; if not 3306
-//     port: 3306,
-
-//     // Your username
-//     user: "root",
-
-//     // Your password
-//     password: "mikeis31",
-//     database: "bamazon"
-// });
-
-// connection.connect(function (err) {
-//     if (err) throw err;
-//     console.log("connected as id " + connection.threadId + "\n");
-// });
-
-function displayProducts() {
-    console.log("Selecting all products...\n");
+async function displayProducts() {
+    const connection =  await mysql.createConnection(connectionObject);
     connection.query("SELECT * FROM products", function (err, res) {
         if (err) throw err;
         // Log all results of the SELECT statement
@@ -33,34 +20,46 @@ function displayProducts() {
     });
 }
 
-function purchaseProduct(productId, purchaseQuanity) {
-
+async function purchaseProduct(productId, purchaseQuanity) {
+    let currentQuantity = await getCurrentQuanityofSpecifiedProduct(productId);
+    if(currentQuantity < purchaseQuanity){
+        console.log(`Insufficient stock, please try purchasing a lower amount than ${currentQuantity}`);
+    }else{
+        let newQuanity = currentQuantity-purchaseQuanity;
+        await updateProduct(productId,newQuanity);
+        let price = await getPriceofSpecifiedProduct(productId);
+        let totalPrice = price*purchaseQuanity;
+        console.log(`Your total today is $${totalPrice}`);
+    }
 }
 
 async function updateProduct(productId, newQuanity) {
-    console.log("Updating items...\n");
+    const connection =  await mysql.createConnection(connectionObject);
     await connection.query(
-        "UPDATE products SET ? WHERE ?", [{stock_quanity: newQuanity},{id: productId}],
+        "UPDATE products SET ? WHERE ?", [{ stock_quanity: newQuanity }, { id: productId }],
     );
+    await connection.end();
 }
 
-async function getCurrentQuanity(productId) {
-    const c = await mysql.createConnection({
-        port: 3306,
-        user: 'root',
-        namedPlaceholders: true,
-        password: 'mikeis31',
-        database: "bamazon"
-      });
-      console.log('connected!');
-      const [rows, fields] = await c.query('SELECT stock_quanity from products where id = ?',[productId]);
-      let foo = rows[0].stock_quanity
+async function getCurrentQuanityofSpecifiedProduct(productId) {
+    const connection = await mysql.createConnection(connectionObject);
+    const [rows, fields] = await connection.query('SELECT stock_quanity from products where id = ?', [productId]);
+    let currentQuantityPromise = rows[0].stock_quanity
+    await connection.end();
+    return currentQuantityPromise;
+}
 
-      return foo;
-
-    
+async function getPriceofSpecifiedProduct(productId) {
+    const connection = await mysql.createConnection(connectionObject);
+    const [rows, fields] = await connection.query('SELECT price from products where id = ?', [productId]);
+    let pricePromise = rows[0].price
+    await connection.end();
+    return pricePromise;
 }
 
 
-getCurrentQuanity(1).then(val => console.log("finished", val));
 
+//displayProducts();
+//getCurrentQuanityofSpecifiedProduct(1).then(val => console.log("finished", val));
+//updateProduct(1,300);
+//purchaseProduct(1,100);
