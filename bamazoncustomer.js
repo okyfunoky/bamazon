@@ -38,6 +38,7 @@ async function updateProduct(productId, newQuanity) {
     await connection.end();
 }
 
+
 async function getCurrentQuanityofSpecifiedProduct(productId) {
     const connection = await mysql.createConnection(connectionObject);
     const [rows, fields] = await connection.query('SELECT stock_quanity from products where id = ?', [productId]);
